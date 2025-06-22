@@ -1,0 +1,405 @@
+{
+  "name": "Cleano email automation",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -360,
+        200
+      ],
+      "id": "a0783ce8-1712-42a5-be3a-ab68b44e79f8",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "jYxeCnRrBV11bBPl",
+          "name": "Test mail db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.id }}",
+        "simple": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -140,
+        200
+      ],
+      "id": "19cb157e-136f-4db3-b706-1214fd6b1c1a",
+      "name": "Gmail",
+      "webhookId": "40c9666d-90bd-4944-848c-ab59e5041c0b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "jYxeCnRrBV11bBPl",
+          "name": "Test mail db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "add cleano mail Credential",
+        "height": 80,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -280,
+        100
+      ],
+      "id": "18ae66cf-94b9-4f68-ab40-1ba89e0e71a6",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-3.5-turbo",
+          "mode": "list",
+          "cachedResultName": "gpt-3.5-turbo"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -300,
+        520
+      ],
+      "id": "1007bc15-5049-4e01-8f17-981d002fd0c8",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "xw4QgoJpi7zSKRrj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "https://docs.google.com/document/d/1Rq8DFwR-Cicm-Z_EQqqf0mmtCJO2JKrRYv7R6m7Oo6Q/edit?tab=t.0"
+      },
+      "type": "n8n-nodes-base.googleDocsTool",
+      "typeVersion": 2,
+      "position": [
+        400,
+        660
+      ],
+      "id": "fb54a11a-7a81-4fac-b832-15863106c77f",
+      "name": "knowledge base",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "EsHf5QdOBk3FNxd5",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Complete the task\n\nSubject :  {{ $json.subject }}\nBody : {{ $json.text }}\nMail id : {{ $json.id }}\nFrom : {{ $json.headers.from }}\nTime : {{ $json.headers.date }}",
+        "options": {
+          "systemMessage": "=You are an AI assistant for a professional cleaning services company called Cleano. Your job is to analyze incoming customer emails and take one of the following actions:\n\nIf the email is a quote or pricing inquiry (i.e., a customer requesting a quote, asking for pricing information, or inquiring about specific services), extract the relevant details and generate a personalized quote email. Calculate the total based on requested services, add-ons, and any specific requirements mentioned. Use the quote template as a style guide, but adapt the content to match the customer's specific needs and requests. Ensure the email is professional, includes a clear price breakdown when possible, and encourages the customer to book.\n\nIf the email is a general customer inquiry (questions about services, availability, policies, or any other customer service-related questions), respond with a friendly acknowledgment email. Use the general inquiry template as a style guide for tone and structure, but customize the content to directly address their specific questions and concerns. Provide relevant information about your services while maintaining the professional yet approachable tone. Always include relevant links in general inquiry responses\n\nIf the email does not fall under quote requests or customer inquiries, ignore it and take no further action.\n\nStyle Guidelines:\nUse the provided templates as style references for tone, structure, and professionalism\nMaintain Cleano's brand voice: professional, friendly, and helpful\nAdapt content to directly address the customer's specific situation and questions\nKeep the same level of detail and thoroughness as the templates\nPreserve the call-to-action approach and contact information format\nEnsure responses feel personalized rather than generic\nkeep the size of email similar to templates that have been provided\n\nClassification: InquiryType: \"Quote Request\" or \"General Inquiry\"\n\nTools:\n1. Email template doc for style reference and baseline structure\n2. Knowledge base doc for pricing details and service information\n3. Send Mail (ALL EMAIL RESPONSES MUST BE GENERATED IN HTML FORMAT ONLY)\n4. Mark as Read\n5. Create or Update hubspot contact (Create a new contact in hubstop if it is a new user)\n\nIf you send the mail make sure you mark the mail as read mail read"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        80,
+        200
+      ],
+      "id": "cca268e0-f0c7-4922-8dc3-3ad3511e7c4c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "content": "you can edit the pricing here\n\nhttps://docs.google.com/document/d/1Rq8DFwR-Cicm-Z_EQqqf0mmtCJO2JKrRYv7R6m7Oo6Q/edit?tab=t.0"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        340,
+        800
+      ],
+      "id": "a755f0fc-90d8-425e-885d-88e15c5bd998",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "you can edit the email templates here\n\nhttps://docs.google.com/document/d/1AypTPdkfX61yArlvgXW9R8Zr2LsOyrI_szlwJDjPmR4/edit?tab=t.0"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        40,
+        800
+      ],
+      "id": "36ef5916-60d9-4ad4-ad61-df5a305e5d7a",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "https://docs.google.com/document/d/1AypTPdkfX61yArlvgXW9R8Zr2LsOyrI_szlwJDjPmR4/edit?tab=t.0"
+      },
+      "type": "n8n-nodes-base.googleDocsTool",
+      "typeVersion": 2,
+      "position": [
+        160,
+        660
+      ],
+      "id": "40ab7882-77c0-4ffb-a8ad-28fdc33a01fe",
+      "name": "email templates",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "EsHf5QdOBk3FNxd5",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', `create a personalize mail and sent it to the customer`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        660,
+        640
+      ],
+      "id": "1f0643c6-c6eb-4068-a955-a81f1950772e",
+      "name": "Send mail",
+      "webhookId": "30192ef9-d581-475f-a968-8999893c17ab",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "jYxeCnRrBV11bBPl",
+          "name": "Test mail db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        520
+      ],
+      "id": "cfd45f77-5c08-4191-b2ad-219b15e4f00f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "8NAtVbDHpNDAGcEk",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message_ID', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        860,
+        560
+      ],
+      "id": "d7c6dec2-a9f7-49b2-b1a6-026bcccc1aef",
+      "name": "Mark as read",
+      "webhookId": "7363e2be-ca61-4395-87a4-e60a84e079bf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "jYxeCnRrBV11bBPl",
+          "name": "Test mail db"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email', `email of the customer`, 'string') }}",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              {
+                "property": "notes",
+                "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('customPropertiesValues0_Value', `determine what the type of service customer asked for`, 'string') }}"
+              }
+            ]
+          },
+          "firstName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('First_Name', ``, 'string') }}",
+          "lastName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Last_Name', ``, 'string') }}",
+          "leadStatus": "NEW",
+          "lifeCycleStage": "customer",
+          "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+          "phoneNumber": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone_Number', ``, 'string') }}",
+          "streetAddress": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Street_Address', ``, 'string') }}"
+        },
+        "options": {
+          "resolveData": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Simplify_Output', ``, 'boolean') }}"
+        }
+      },
+      "type": "n8n-nodes-base.hubspotTool",
+      "typeVersion": 2.1,
+      "position": [
+        1100,
+        480
+      ],
+      "id": "7f7613cf-51a3-485f-9b39-e6daadc9ccd9",
+      "name": "HubSpot",
+      "credentials": {
+        "hubspotOAuth2Api": {
+          "id": "KpmURRfDTiSAOo6V",
+          "name": "HubSpot account Cleano"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "the ai will determine to whom to send the mail change the value for testing"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        760,
+        820
+      ],
+      "id": "3803be41-415f-4bf1-8297-431d13bb50b7",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "knowledge base": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "email templates": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send mail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as read": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0b18bf7f-952e-4412-8351-2bfce482cd8e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7123a4a9c41ab5969c0b5887ce8eb7711cd165248702fcd9a6ac8658aa45f1f1"
+  },
+  "id": "T3AL0BmaRsD6vR7G",
+  "tags": []
+}
