@@ -1,0 +1,786 @@
+{
+    "name": "Blog Post Generator v2",
+    "nodes": [
+        {
+            "parameters": {
+                "formTitle": "Blog generator v2",
+                "formDescription": "Blog generator v2",
+                "formFields": {
+                    "values": [
+                        {
+                            "fieldLabel": "Project Name",
+                            "placeholder": "Tech Site ",
+                            "requiredField": true
+                        },
+                        {
+                            "fieldLabel": "Client Website URL (this is the website where the blog post with our backlinks are posted)",
+                            "placeholder": "www.exaple.com or https://example.com/",
+                            "requiredField": true
+                        },
+                        {
+                            "fieldLabel": "Number of Blog Posts to be generated",
+                            "fieldType": "number",
+                            "placeholder": "3",
+                            "requiredField": true
+                        },
+                        {
+                            "fieldLabel": "Number of Words per Blog Post",
+                            "fieldType": "number",
+                            "placeholder": "500",
+                            "requiredField": true
+                        },
+                        {
+                            "fieldLabel": "Number of Backlinks Per Post",
+                            "fieldType": "number",
+                            "requiredField": true
+                        },
+                        {
+                            "fieldLabel": "Key Words (add multiple Keywords separated by ,)",
+                            "placeholder": "5",
+                            "requiredField": true
+                        }
+                    ]
+                },
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.formTrigger",
+            "typeVersion": 2.2,
+            "position": [
+                0,
+                140
+            ],
+            "id": "180d50ef-c5d0-48c1-9469-4b968f4b5835",
+            "name": "On form submission",
+            "webhookId": "081df20f-cf5b-4031-9ef4-e8c40dfe05f9"
+        },
+        {
+            "parameters": {
+                "jsCode": "const numberOfFields = $input.first().json['Number of Backlinks Per Post'];\nconst clientWebsite = $input.first().json['Client Website URL (this is the website where the blog post with our backlinks are posted)'];\nconst formFields = [];\n\n// Create form fields for backlinks\nfor (let i = 1; i <= numberOfFields; i++) {\n  formFields.push({\n    fieldLabel: 'Back link URL' + i,\n    placeholder: 'www.oursite.com',\n    fieldType: 'text',\n    requiredField: true\n  });\n}\n\n// Prepare client website for initial scraping\nconst urlsToScrape = [{\n  url: clientWebsite,\n  type: 'client'\n}];\n\nreturn [{ \n  json: { \n    nextform: formFields,\n    clientWebsite: clientWebsite,\n    urlsToScrape: urlsToScrape\n  } \n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                220,
+                140
+            ],
+            "id": "0b9b4fd5-9805-45be-85dc-59d337c67f8b",
+            "name": "Code"
+        },
+        {
+            "parameters": {
+                "defineForm": "json",
+                "jsonOutput": "={{ $json.nextform }}",
+                "options": {
+                    "formDescription": "Enter the backlink URLs"
+                }
+            },
+            "type": "n8n-nodes-base.form",
+            "typeVersion": 1,
+            "position": [
+                440,
+                140
+            ],
+            "id": "704fba11-08a6-453b-a05e-209f29e97991",
+            "name": "Form",
+            "webhookId": "624a8494-7bd2-4f3f-b99c-03a8bae6b2a9"
+        },
+        {
+            "parameters": {
+                "jsCode": "const numberOfPosts = $('On form submission').first().json['Number of Blog Posts to be generated'];\nconst contentFields = [];\n\n// Create form fields for blog post content/topics\nfor (let i = 1; i <= numberOfPosts; i++) {\n  contentFields.push({\n    fieldLabel: `Blog Post ${i} Topic/Content Idea`,\n    placeholder: `Enter the topic or content idea for blog post ${i}`,\n    fieldType: 'text',\n    requiredField: true\n  });\n}\n\nreturn [{ \n  json: { \n    contentform: contentFields\n  } \n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                660,
+                140
+            ],
+            "id": "content-form-generator",
+            "name": "Generate Content Form"
+        },
+        {
+            "parameters": {
+                "defineForm": "json",
+                "jsonOutput": "={{ $json.contentform }}",
+                "options": {
+                    "formDescription": "Enter the content/topic for each blog post"
+                }
+            },
+            "type": "n8n-nodes-base.form",
+            "typeVersion": 1,
+            "position": [
+                880,
+                140
+            ],
+            "id": "content-form",
+            "name": "Content Form",
+            "webhookId": "content-form-webhook"
+        },
+        {
+            "parameters": {
+                "jsCode": "const clientWebsite = $('On form submission').first().json['Client Website URL (this is the website where the blog post with our backlinks are posted)'];\nconst numberOfBacklinks = $('On form submission').first().json['Number of Backlinks Per Post'];\n\n// Collect all backlink URLs from the form\nconst backlinkUrls = [];\nfor (let i = 1; i <= numberOfBacklinks; i++) {\n  const backlinkUrl = $('Form').first().json[`Back link URL${i}`];\n  if (backlinkUrl && backlinkUrl.trim() !== '') {\n    // Ensure URL has protocol\n    let formattedUrl = backlinkUrl.trim();\n    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {\n      formattedUrl = 'https://' + formattedUrl;\n    }\n    backlinkUrls.push(formattedUrl);\n  }\n}\n\n// Format client website URL\nlet clientUrl = clientWebsite.trim();\nif (!clientUrl.startsWith('http://') && !clientUrl.startsWith('https://')) {\n  clientUrl = 'https://' + clientUrl;\n}\n\n// Combine all URLs to scrape\nconst allUrls = [\n  { url: clientUrl, type: 'client' },\n  ...backlinkUrls.map(url => ({ url: url, type: 'backlink' }))\n];\n\n// Return each URL as separate item for parallel processing\nreturn allUrls.map(item => ({ \n  json: { \n    url: item.url, \n    type: item.type,\n    projectName: $('On form submission').first().json['Project Name']\n  } \n}));"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1100,
+                140
+            ],
+            "id": "acace9c3-5322-4bc6-b2fb-48a61331e427",
+            "name": "Prepare URLs for Scraping"
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.url }}",
+                "options": {
+                    "timeout": 10000
+                }
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1320,
+                140
+            ],
+            "id": "02036afe-d7db-4de8-848b-fbe2dba2c2bf",
+            "name": "Scrape Website Content",
+            "onError": "continueRegularOutput"
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const url = $json.url;\nconst type = $json.type;\nconst projectName = $json.projectName;\nconst htmlContent = $json.data || '';\n\ntry {\n  // Extract text content (basic HTML parsing)\n  let textContent = htmlContent\n    .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '') // Remove scripts\n    .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '') // Remove styles\n    .replace(/<[^>]*>/g, ' ') // Remove HTML tags\n    .replace(/\\s+/g, ' ') // Replace multiple whitespace with single space\n    .trim();\n\n  // Limit content length (first 3000 characters for context)\n  textContent = textContent.substring(0, 3000);\n\n  // Extract title\n  const titleMatch = htmlContent.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i);\n  const title = titleMatch ? titleMatch[1].trim().replace(/\\s+/g, ' ') : 'No title found';\n\n  // Extract meta description\n  const metaMatch = htmlContent.match(/<meta[^>]*name=[\"']description[\"'][^>]*content=[\"']([^\"']*)[\"']/i);\n  const description = metaMatch ? metaMatch[1] : 'No description found';\n\n  // Extract keywords if available\n  const keywordsMatch = htmlContent.match(/<meta[^>]*name=[\"']keywords[\"'][^>]*content=[\"']([^\"']*)[\"']/i);\n  const keywords = keywordsMatch ? keywordsMatch[1] : '';\n\n  // Extract H1 tags for main topics\n  const h1Matches = htmlContent.match(/<h1[^>]*>([\\s\\S]*?)<\\/h1>/gi) || [];\n  const mainTopics = h1Matches.map(h1 => h1.replace(/<[^>]*>/g, '').trim()).slice(0, 5);\n\n  return { webcontent : {\n    json: {\n      url: url,\n      type: type,\n      projectName: projectName,\n      title: title,\n      description: description,\n      keywords: keywords,\n      mainTopics: mainTopics,\n      content: textContent,\n      contentLength: textContent.length,\n      scrapedAt: new Date().toISOString(),\n      status: 'success'\n    }\n  }\n         };\n} catch (error) {\n  return {\n    json: {\n      url: url,\n      type: type,\n      projectName: projectName,\n      title: 'Error scraping',\n      description: 'Failed to scrape content',\n      keywords: '',\n      mainTopics: [],\n      content: 'Content unavailable due to scraping error',\n      contentLength: 0,\n      scrapedAt: new Date().toISOString(),\n      status: 'error',\n      error: error.message\n    }\n  };\n}"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1540,
+                140
+            ],
+            "id": "c355383a-7b05-4463-84b9-06b98f98bad0",
+            "name": "Process Scraped Content"
+        },
+        {
+            "parameters": {
+                "folderId": "=1OfzQ2meJjMhB-MxhI71I8K5RUGAj9fZL",
+                "title": "={{ $('On form submission').item.json['Project Name'] }}"
+            },
+            "type": "n8n-nodes-base.googleDocs",
+            "typeVersion": 2,
+            "position": [
+                2576,
+                140
+            ],
+            "id": "36e760c0-3d45-4ad8-bfff-409dbe5c2ec7",
+            "name": "Google Docs - Creating a Doc",
+            "credentials": {
+                "googleDocsOAuth2Api": {
+                    "id": "d8yhRVXxiiXScKpm",
+                    "name": "Google Docs account Work Mail"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "__rl": true,
+                    "value": "1Q-przF5CG-1bdUuqbnX3d_lMmjN7mKKsK80ReJ38X2k",
+                    "mode": "list",
+                    "cachedResultName": "Blog",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q-przF5CG-1bdUuqbnX3d_lMmjN7mKKsK80ReJ38X2k/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "gid=0",
+                    "mode": "list",
+                    "cachedResultName": "Sheet1",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q-przF5CG-1bdUuqbnX3d_lMmjN7mKKsK80ReJ38X2k/edit#gid=0"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Project Name": "={{ $('On form submission').item.json['Project Name'] }}",
+                        "Number of Blogs": "={{ $('On form submission').item.json['Number of Blog Posts to be generated'] }}",
+                        "Doc Link ": "=https://docs.google.com/document/d/{{ $('Google Docs - Creating a Doc').item.json.id }}"
+                    },
+                    "matchingColumns": [],
+                    "schema": [
+                        {
+                            "id": "Project Name",
+                            "displayName": "Project Name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Number of Blogs",
+                            "displayName": "Number of Blogs",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Doc Link ",
+                            "displayName": "Doc Link ",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "Humanized (the content is being humanized wait for a minute till the link is added)",
+                            "displayName": "Humanized (the content is being humanized wait for a minute till the link is added)",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.6,
+            "position": [
+                3560,
+                -120
+            ],
+            "id": "c7df045f-a7d3-425f-895a-2e75d2f0c30c",
+            "name": "Google Sheets",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "Y4X99sOhVcCTLAQy",
+                    "name": "Google Sheets account work mail"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "completion",
+                "respondWith": "redirect",
+                "redirectUrl": "https://docs.google.com/spreadsheets/d/1Q-przF5CG-1bdUuqbnX3d_lMmjN7mKKsK80ReJ38X2k/edit?gid=0#gid=0"
+            },
+            "type": "n8n-nodes-base.form",
+            "typeVersion": 1,
+            "position": [
+                3780,
+                -120
+            ],
+            "id": "06d8dc9a-a27c-47ba-b4f2-a47ea0ef76c2",
+            "name": "Form1",
+            "webhookId": "770966c4-fbe9-4dec-92b4-44146eb0e087"
+        },
+        {
+            "parameters": {
+                "text": "=Title: {{ $json.webcontent.json.title }}\nDescription: {{ $json.webcontent.json.description }}\ncontent: {{ $json.webcontent.json.content }}\n",
+                "attributes": {
+                    "attributes": [
+                        {
+                            "name": "web summary",
+                            "description": "summarize the content",
+                            "required": true
+                        }
+                    ]
+                },
+                "options": {
+                    "systemPromptTemplate": "You are an expert in information extraction and summarization.\nYour task is to extract only the most relevant and meaningful information from raw, webscraped content. Ignore boilerplate elements such as navigation menus, advertisements, footers, cookie banners, and unrelated links.\n\nReturn a clean, well-structured summary that accurately reflects the key insights, topics, or features of the source webpage. The summary should be concise but detailed enough to inform another AI model responsible for generating high-quality blog posts based on the extracted data.\n\nInstructions:\n\nFocus on the core content of the page (e.g., product details, tutorials, service descriptions, article body).\n\nEliminate noise or redundant content.\n\nPresent the summary in bullet points or short paragraphs.\n\nDo not include HTML, scripts, or non-content elements.\n\nMaintain clarity, coherence, and topic relevance."
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+            "typeVersion": 1.1,
+            "position": [
+                1760,
+                140
+            ],
+            "id": "8062e066-7367-4d3a-871c-8b65b7f374e6",
+            "name": "Information Extractor"
+        },
+        {
+            "parameters": {
+                "modelName": "models/gemini-2.5-flash",
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+            "typeVersion": 1,
+            "position": [
+                1760,
+                380
+            ],
+            "id": "0f0c47d8-8875-44a9-97b4-29e2ffd2a5f7",
+            "name": "Google Gemini Chat Model1",
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "ys8c6b8udQDLBtx7",
+                    "name": "Google Gemini(PaLM) Api account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Transform the input data array and prepare blog content ideas\nconst inputData = $input.first().json.data;\nconst numberOfPosts = $('On form submission').first().json['Number of Blog Posts to be generated'];\n\n// Collect blog content ideas from the content form\nconst blogContentIdeas = [];\nfor (let i = 1; i <= numberOfPosts; i++) {\n  const contentIdea = $('Content Form').first().json[`Blog Post ${i} Topic/Content Idea`];\n  if (contentIdea && contentIdea.trim() !== '') {\n    blogContentIdeas.push(contentIdea.trim());\n  }\n}\n\n// Transform the data\nconst transformedData = {\n  client_website_information: inputData[0].output,\n  backlink_website_information: inputData.slice(1).map(item => item.output),\n  blog_content_ideas: blogContentIdeas\n};\n\n// Output the transformed data\nconsole.log(JSON.stringify(transformedData, null, 2));\n// For n8n, you would return this object:\nreturn transformedData;"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                2356,
+                140
+            ],
+            "id": "424c32ee-625f-4bab-aa09-d7c771d9717a",
+            "name": "Code1"
+        },
+        {
+            "parameters": {
+                "aggregate": "aggregateAllItemData",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.aggregate",
+            "typeVersion": 1,
+            "position": [
+                2136,
+                140
+            ],
+            "id": "7498567c-400d-4fc2-b232-6274957adab0",
+            "name": "Aggregate"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "=Generate SEO-optimized blog posts for: {{ $('On form submission').item.json['Client Website URL (this is the website where the blog post with our backlinks are posted)'] }}\nProject Specifications:\n\nProject Name: {{ $('On form submission').item.json[\"Project Name\"] }}\nTarget Word Count: {{ $('On form submission').item.json[\"Number of Words per Blog Post\"] }} words per post\nBacklinks Per Post: {{ $('On form submission').item.json[\"Number of Backlinks Per Post\"] }}\nTarget Keywords: {{ $('On form submission').item.json[\"Key Words (add multiple Keywords separated by ,)\"] }}\n\nBlog Content Topic: {{ $('Code1').item.json.blog_content_ideas[$json.i] }}\n\nBacklink URLs (to be integrated with keywords):\n{{ $('Form').item.json[\"Back link URL1\"] }}\n{{ $('Form').item.json[\"Back link URL2\"] }}\n{{ $('Form').item.json[\"Back link URL3\"] }}\n{{ $('Form').item.json[\"Back link URL4\"] }}\n{{ $('Form').item.json[\"Back link URL5\"] }}\n\nContent Analysis Data:\nClient Website Information:\n{{ $('Code1').item.json.client_website_information['web summary'] }}\nBacklink Website Information:\n\n{{ $('Code1').item.json.backlink_website_information[0]['web summary'] }}\n{{ $('Code1').item.json.backlink_website_information[1]['web summary'] }}\n{{ $('Code1').item.json.backlink_website_information[2]['web summary'] }}\n{{ $('Code1').item.json.backlink_website_information[3]['web summary'] }}\n{{ $('Code1').item.json.backlink_website_information[4]['web summary'] }}",
+                "hasOutputParser": true,
+                "options": {
+                    "systemMessage": "=#Role\nYou are an expert SEO blog post generator. Your primary objective is to create high-quality, search engine optimized blog posts that naturally incorporate provided keywords and backlinks to enhance the client website's SEO performance and domain authority.\n\n#Instruction\n1. Analyze the provided context: Thoroughly understand the client website's niche, target audience, content style, and brand voice from the provided site information.\n2. Generate targeted blog posts: Create engaging, informative blog posts based on the specific content topic provided, ensuring the post provides genuine value to readers while strategically incorporating SEO elements.\n3. Use the provided blog content topic as the main theme and focus of the blog post.\n\n#Rules\n- Every single blog post MUST naturally incorporate ALL provided keywords in a contextually relevant manner that maintains readability and flow.\n- Each backlink MUST be associated with its corresponding keywords and integrated organically within the content where it adds genuine value to the reader.\n- Each blog post must be original and distinct, avoiding duplicate content issues while maintaining thematic consistency.\n- The blog post MUST be centered around the provided content topic/idea.\n\n#Example blogs\nUse the following blogs as a reference for style, structure, and integration techniques:\n<example>\nBlog : The Importance of Regular Plumbing Maintenance\nRegular plumbing maintenance is essential for both residential and commercial properties. It ensures the proper functioning of your plumbing system and helps prevent unexpected problems that could lead to costly repairs.\nBenefits of Regular Plumbing Maintenance\nPrevention of Major Repairs: Regular inspections help identify small issues before they turn into major failures, saving you time and money.\n\n\nImproved Water Quality: Frequent maintenance allows for the detection and removal of contaminants, ensuring that the water flowing through your pipes is clean and safe to use.\n\nExtended Lifespan of Fixtures: Regular maintenance and timely repairs extend the life of your plumbing equipment, maximizing your investment.\n\nBest Maintenance Practices\n🔹 Regular Inspections: Schedule periodic checks to spot leaks, corrosion, or any signs of wear in your plumbing system.\n🔹 Drain Cleaning: Prevent clogs and blockages by cleaning your drains regularly. This ensures proper wastewater flow and reduces the risk of backflow.\n🔹 Monitoring Water Pressure: High pressure can damage your pipes, while low pressure can indicate an underlying problem. Regular monitoring helps avoid these issues.\nWhy Hire a Professional Plumbing Service?\nWhile some maintenance tasks can be done yourself, hiring professionals ensures a more thorough and efficient service. Plombier 24/7 Montréal offers plumbing services tailored to both residential and commercial needs. Their experienced team can handle regular maintenance as well as emergency repairs.\nAdditionally, Plomberie Montréal provides skilled experts for fast and effective interventions, ensuring your plumbing system remains in top condition.\nIf you're looking for a reliable and high-quality service, Plombier Montréal is an excellent choice to ensure the durability and efficiency of your installation.\nConclusion\nInvesting in regular plumbing maintenance is essential for ensuring its proper function and extending its lifespan. By working with professionals like Plombier 24/7 Montréal, you gain expert service that offers peace of mind and protection against unexpected issues. Don't let small problems turn into big disasters—make sure your plumbing stays in perfect condition with professional and regular maintenance.\n</example>"
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 2,
+            "position": [
+                3700,
+                80
+            ],
+            "id": "67c7778b-1b48-4169-bc26-b69cda6645f2",
+            "name": "AI Agent",
+            "alwaysOutputData": true,
+            "executeOnce": false,
+            "retryOnFail": false
+        },
+        {
+            "parameters": {
+                "model": {
+                    "__rl": true,
+                    "value": "gpt-4.1",
+                    "mode": "list",
+                    "cachedResultName": "gpt-4.1"
+                },
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1.2,
+            "position": [
+                3620,
+                340
+            ],
+            "id": "bbb06bf7-19a1-4912-b88a-5d293b5cfebf",
+            "name": "OpenAI Chat Model",
+            "credentials": {
+                "openAiApi": {
+                    "id": "srtkd3OI6m9ILWAw",
+                    "name": "OpenAi account cleano"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "mode": "raw",
+                "jsonOutput": "{\n  \"i\": \"0\"\n}\n",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                2796,
+                140
+            ],
+            "id": "cd3143dd-8d9f-4fc5-99df-d4356aa3d42f",
+            "name": "Set"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "loose",
+                        "version": 2
+                    },
+                    "conditions": [
+                        {
+                            "id": "b1577df4-a7dc-4b71-9295-ee096ae697d0",
+                            "leftValue": "={{ $json.i }}",
+                            "rightValue": "={{ $('On form submission').item.json['Number of Blog Posts to be generated'] }}",
+                            "operator": {
+                                "type": "number",
+                                "operation": "lt"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "looseTypeValidation": true,
+                "options": {}
+            },
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.2,
+            "position": [
+                3016,
+                140
+            ],
+            "id": "b82eda19-c534-48b2-b504-3946361ba75a",
+            "name": "If"
+        },
+        {
+            "parameters": {
+                "mode": "raw",
+                "jsonOutput": "={\n  \"i\": {{ $json.i }},\n  \"my_field_2\": 1\n}\n",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                3380,
+                240
+            ],
+            "id": "08563371-1370-4b0a-a438-1d3e51be8f0e",
+            "name": "Edit Fields"
+        },
+        {
+            "parameters": {
+                "jsonSchemaExample": "{\n\t\"blog\": \"blog content\"\n}"
+            },
+            "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+            "typeVersion": 1.2,
+            "position": [
+                3860,
+                340
+            ],
+            "id": "ce0c7c55-6c30-4600-95ec-030cd9f854c6",
+            "name": "Structured Output Parser"
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "documentURL": "={{ $('Google Docs - Creating a Doc').item.json.id }}",
+                "actionsUi": {
+                    "actionFields": [
+                        {
+                            "action": "insert",
+                            "text": "={{ \"Blog Post \" + ($json.i + 1) + \":\\n\\n\" + $json.output.blog + \"\\n\\n\" + \"=\" + \"=\".repeat(50) + \"\\n\\n\" }}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.googleDocs",
+            "typeVersion": 2,
+            "position": [
+                4020,
+                340
+            ],
+            "id": "deeae8cf-306e-4435-bf3a-c8bcfde0b2a6",
+            "name": "Google Docs",
+            "credentials": {
+                "googleDocsOAuth2Api": {
+                    "id": "d8yhRVXxiiXScKpm",
+                    "name": "Google Docs account Work Mail"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "mode": "raw",
+                "jsonOutput": "={\n  \"i\" : {{ $('Edit Fields').item.json.i + 1 || 100}}\n}\n",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                4240,
+                340
+            ],
+            "id": "863018ec-69ff-488d-89cd-25dccf8c4334",
+            "name": "Edit Fields1"
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "On form submission": {
+            "main": [
+                [
+                    {
+                        "node": "Code",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code": {
+            "main": [
+                [
+                    {
+                        "node": "Form",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Form": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Content Form",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Content Form": {
+            "main": [
+                [
+                    {
+                        "node": "Content Form",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Content Form": {
+            "main": [
+                [
+                    {
+                        "node": "Prepare URLs for Scraping",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google Docs - Creating a Doc": {
+            "main": [
+                [
+                    {
+                        "node": "Set",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Prepare URLs for Scraping": {
+            "main": [
+                [
+                    {
+                        "node": "Scrape Website Content",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Scrape Website Content": {
+            "main": [
+                [
+                    {
+                        "node": "Process Scraped Content",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google Sheets": {
+            "main": [
+                [
+                    {
+                        "node": "Form1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Process Scraped Content": {
+            "main": [
+                [
+                    {
+                        "node": "Information Extractor",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Information Extractor": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregate",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google Gemini Chat Model1": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Information Extractor",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code1": {
+            "main": [
+                [
+                    {
+                        "node": "Google Docs - Creating a Doc",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Aggregate": {
+            "main": [
+                [
+                    {
+                        "node": "Code1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Google Docs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set": {
+            "main": [
+                [
+                    {
+                        "node": "If",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If": {
+            "main": [
+                [
+                    {
+                        "node": "Edit Fields",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Google Sheets",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Edit Fields": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Structured Output Parser": {
+            "ai_outputParser": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_outputParser",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google Docs": {
+            "main": [
+                [
+                    {
+                        "node": "Edit Fields1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Edit Fields1": {
+            "main": [
+                [
+                    {
+                        "node": "If",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "6a9df20f-8239-44b1-b257-1a409a47a953",
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "bcef9e02aff38c55c388bc5b827a021b94219cae8c97648910f70ac9d92dbcdc"
+    },
+    "id": "27mYGQPNCWVTBu6R",
+    "tags": []
+}

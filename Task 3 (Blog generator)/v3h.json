@@ -1,0 +1,499 @@
+{
+    "name": "Blog Humanizer v2",
+    "nodes": [
+        {
+            "parameters": {
+                "pollTimes": {
+                    "item": [
+                        {
+                            "mode": "everyX",
+                            "value": 1,
+                            "unit": "minutes"
+                        }
+                    ]
+                },
+                "documentId": {
+                    "__rl": true,
+                    "value": "1Q-przF5CG-1bdUuqbnX3d_lMmjN7mKKsK80ReJ38X2k",
+                    "mode": "list",
+                    "cachedResultName": "Blog",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q-przF5CG-1bdUuqbnX3d_lMmjN7mKKsK80ReJ38X2k/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "gid=0",
+                    "mode": "list",
+                    "cachedResultName": "Sheet1",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q-przF5CG-1bdUuqbnX3d_lMmjN7mKKsK80ReJ38X2k/edit#gid=0"
+                },
+                "event": "rowAdded",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheetsTrigger",
+            "typeVersion": 1,
+            "position": [
+                -1140,
+                120
+            ],
+            "id": "0d1fa3e7-2a68-4365-98bf-1bbf626b7909",
+            "name": "Google Sheets Trigger",
+            "credentials": {
+                "googleSheetsTriggerOAuth2Api": {
+                    "id": "GeAAWMBzXZ0TwLKA",
+                    "name": "Google Sheets Trigger account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const input = $json[\"content\"]; // Replace with your actual field name\nconst parts = input.split(/(?=Blog Post \\d+:)/); // Split at \"Blog Post NaN:\" pattern\n\nreturn parts.map(doc => {\n  const cleanedDoc = doc.replace(/^Blog Post \\d+:\\s*/, ''); // Remove \"Blog Post NaN:\" from beginning\n  return {\n    json: {\n      document: cleanedDoc.trim()\n    }\n  };\n}).filter(item => item.json.document.length > 0); // Filter out empty documents\n"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -480,
+                120
+            ],
+            "id": "87e506e0-a093-48d9-a7ca-0153b545bb94",
+            "name": "Code"
+        },
+        {
+            "parameters": {
+                "options": {
+                    "reset": false
+                }
+            },
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 3,
+            "position": [
+                -260,
+                120
+            ],
+            "id": "7225e4dd-d10a-4b03-bdd1-185b05adfd94",
+            "name": "Loop Over Items"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "=Humanize this blog post:\n\n{{ $json.document }}",
+                "hasOutputParser": true,
+                "options": {
+                    "systemMessage": "=#Role\nYou are an expert blog post humanizer specializing in transforming AI-generated content into authentic, human-like writing while preserving the original structure, SEO elements, and core messaging.\n\n#Instruction\n1. Humanize the blog post: Transform the AI-generated content by incorporating natural language patterns, varied sentence structures, personal touches, and authentic human writing characteristics while maintaining all SEO keywords, backlinks, and structural elements.\n2. Validate with AI-Detector tool: After each humanization attempt, use the AI-Detector tool to analyze the percentage of AI-detected content in your revised version.\n3. Quality control process: If the AI detection percentage is below 30%, return the humanized blog post. If it's 30% or above, continue with another humanization iteration using the tool's specific suggestions for improvement.\n4. Iterative improvement: Apply the AI-Detector tool's recommendations to address specific areas flagged as AI-generated, focusing on sentence variation, tone adjustment, and natural flow enhancement.\n\n#Rules\n- Never make assumptions about AI detection levels; always use the AI-Detector tool to verify the actual AI percentage before proceeding or returning results.\n- Attempt humanization a maximum of 2 times. If the content still exceeds 30% AI detection after 2 attempts, return the best version achieved.\n- Maintain all SEO keywords, backlinks, heading structure, key information, and overall content purpose throughout the humanization process.\n- Utilize tool feedback: Carefully implement the specific suggestions provided by the AI-Detector tool to target the most problematic AI-detected sections.\n\n# Humanization Techniques\nFocus on these elements to create authentic human writing:\n- Vary sentence lengths and structures naturally\n- Add conversational elements and personal insights\n- Use transitional phrases that feel organic\n- Incorporate rhetorical questions and relatable examples\n- Adjust tone to match target audience expectations\n- Include subtle personal opinions or experiences where appropriate\n- Use contractions and informal language when suitable"
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 2,
+            "position": [
+                -8,
+                120
+            ],
+            "id": "75b1962a-6ce6-44b0-b05e-8b1e70484ece",
+            "name": "AI Agent1"
+        },
+        {
+            "parameters": {
+                "toolDescription": "Use this tool AI-Detector for checking for ai content in the blog",
+                "method": "POST",
+                "url": "https://api.gptzero.me/v2/predict/text",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "x-api-key",
+                            "value": "10b3f03f898e425680b58fa47daef6c5"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "document",
+                            "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Value', `Add the blog post here for checking`, 'string') }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequestTool",
+            "typeVersion": 4.2,
+            "position": [
+                80,
+                340
+            ],
+            "id": "f6d1de4e-f2d1-475f-8c5b-b348ed5342c2",
+            "name": "AI-Detector"
+        },
+        {
+            "parameters": {
+                "folderId": "=1OfzQ2meJjMhB-MxhI71I8K5RUGAj9fZL",
+                "title": "={{ $json['Project Name'] + \" humanized\" }}"
+            },
+            "type": "n8n-nodes-base.googleDocs",
+            "typeVersion": 2,
+            "position": [
+                -920,
+                120
+            ],
+            "id": "3e2f2d3f-490e-479f-8343-6b9bb60e0f92",
+            "name": "Create a new doc for humanized content",
+            "credentials": {
+                "googleDocsOAuth2Api": {
+                    "id": "d8yhRVXxiiXScKpm",
+                    "name": "Google Docs account Work Mail"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "appendOrUpdate",
+                "documentId": {
+                    "__rl": true,
+                    "value": "1Q-przF5CG-1bdUuqbnX3d_lMmjN7mKKsK80ReJ38X2k",
+                    "mode": "list",
+                    "cachedResultName": "Blog",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q-przF5CG-1bdUuqbnX3d_lMmjN7mKKsK80ReJ38X2k/edit?usp=drivesdk"
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "value": "gid=0",
+                    "mode": "list",
+                    "cachedResultName": "Sheet1",
+                    "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q-przF5CG-1bdUuqbnX3d_lMmjN7mKKsK80ReJ38X2k/edit#gid=0"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Doc Link ": "={{ $('Google Sheets Trigger').item.json['Doc Link '] }}",
+                        "Humanized (the content is being humanized wait for a minute till the link is added)": "={{ 'https://docs.google.com/document/d/' + $('Create a new doc for humanized content').item.json.id }}"
+                    },
+                    "matchingColumns": [
+                        "Doc Link "
+                    ],
+                    "schema": [
+                        {
+                            "id": "Project Name",
+                            "displayName": "Project Name",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Number of Blogs",
+                            "displayName": "Number of Blogs",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "Doc Link ",
+                            "displayName": "Doc Link ",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true,
+                            "removed": false
+                        },
+                        {
+                            "id": "Humanized (the content is being humanized wait for a minute till the link is added)",
+                            "displayName": "Humanized (the content is being humanized wait for a minute till the link is added)",
+                            "required": false,
+                            "defaultMatch": false,
+                            "display": true,
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        }
+                    ],
+                    "attemptToConvertTypes": false,
+                    "convertFieldsToString": false
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.6,
+            "position": [
+                400,
+                -180
+            ],
+            "id": "999f0fe5-7c71-44d4-89e0-f55a1442e59a",
+            "name": "Google Sheets",
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "Y4X99sOhVcCTLAQy",
+                    "name": "Google Sheets account work mail"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "get",
+                "documentURL": "={{ $('Google Sheets Trigger').item.json['Doc Link '] + '/edit?tab=t.0'}}"
+            },
+            "type": "n8n-nodes-base.googleDocs",
+            "typeVersion": 2,
+            "position": [
+                -700,
+                120
+            ],
+            "id": "cb730eb5-e4b5-4ee6-a960-2a2d91d9a04e",
+            "name": "Google Docs",
+            "credentials": {
+                "googleDocsOAuth2Api": {
+                    "id": "d8yhRVXxiiXScKpm",
+                    "name": "Google Docs account Work Mail"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "modelName": "models/gemini-2.5-flash",
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+            "typeVersion": 1,
+            "position": [
+                -40,
+                340
+            ],
+            "id": "a336dc50-a8d3-4bcb-91d8-4b1615673057",
+            "name": "Google Gemini Chat Model1",
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "ys8c6b8udQDLBtx7",
+                    "name": "Google Gemini(PaLM) Api account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "documentURL": "={{ $('Create a new doc for humanized content').item.json.id }}",
+                "actionsUi": {
+                    "actionFields": [
+                        {
+                            "action": "insert",
+                            "text": "={{ $json.output.humanized_blog + '/n/n'}}"
+                        }
+                    ]
+                }
+            },
+            "type": "n8n-nodes-base.googleDocs",
+            "typeVersion": 2,
+            "position": [
+                400,
+                120
+            ],
+            "id": "9ca7965d-b9f5-4c2c-91b1-90c3c7ff72a6",
+            "name": "Add content",
+            "credentials": {
+                "googleDocsOAuth2Api": {
+                    "id": "d8yhRVXxiiXScKpm",
+                    "name": "Google Docs account Work Mail"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsonSchemaExample": "{\n\t\"humanized_blog\": \"humanized blog content\"\n}"
+            },
+            "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+            "typeVersion": 1.2,
+            "position": [
+                200,
+                340
+            ],
+            "id": "b3f7bca7-54ce-4f4c-93ea-1a7362a935c5",
+            "name": "Structured Output Parser"
+        },
+        {
+            "parameters": {
+                "amount": 2
+            },
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1.1,
+            "position": [
+                620,
+                245
+            ],
+            "id": "97e5ab35-fbe2-4d8a-8412-a79665ff84df",
+            "name": "Wait",
+            "webhookId": "42910874-adf8-49e9-82da-a246786a4d4f"
+        },
+        {
+            "parameters": {
+                "fieldsToAggregate": {
+                    "fieldToAggregate": [
+                        {}
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.aggregate",
+            "typeVersion": 1,
+            "position": [
+                70,
+                -180
+            ],
+            "id": "84dcec19-51e0-43d6-870b-4ceba941fe36",
+            "name": "Aggregate"
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Google Sheets Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Create a new doc for humanized content",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Code": {
+            "main": [
+                [
+                    {
+                        "node": "Loop Over Items",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Loop Over Items": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregate",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "AI Agent1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI Agent1": {
+            "main": [
+                [
+                    {
+                        "node": "Add content",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "AI-Detector": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent1",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create a new doc for humanized content": {
+            "main": [
+                [
+                    {
+                        "node": "Google Docs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google Docs": {
+            "main": [
+                [
+                    {
+                        "node": "Code",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google Gemini Chat Model1": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent1",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Add content": {
+            "main": [
+                [
+                    {
+                        "node": "Wait",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Structured Output Parser": {
+            "ai_outputParser": [
+                [
+                    {
+                        "node": "AI Agent1",
+                        "type": "ai_outputParser",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait": {
+            "main": [
+                [
+                    {
+                        "node": "Loop Over Items",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Aggregate": {
+            "main": [
+                [
+                    {
+                        "node": "Google Sheets",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "e98e1920-c3a8-4ff2-a268-87a485d2564d",
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "bcef9e02aff38c55c388bc5b827a021b94219cae8c97648910f70ac9d92dbcdc"
+    },
+    "id": "iYNWkcmid70UGueO",
+    "tags": []
+}
