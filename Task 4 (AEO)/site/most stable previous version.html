@@ -15,8 +15,8 @@
         </button>
 
         <div class="header">
-            <h1>AEO V2</h1>
-            <p>AEO Analysis Tool</p>
+            <h1>AEO Analysis Tool</h1>
+            <p>Analyze how your website performs in AI-powered search results. Get insights into your site's presence in ChatGPT, Gemini, and other AI search engines.</p>
         </div>
 
         <form id="analysisForm" class="form-section">
@@ -43,41 +43,57 @@
                     </select>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" >
                     <label for="companyName">Company Name <span class="required">*</span></label>
                     <input type="text" id="companyName" name="companyName" required>
                 </div>
 
-                <div id="customQueriesContainer" class="custom-queries-container">
+
+            </div>
+
+            <div id="customQueriesContainer" class="custom-queries-container">
+                <div class="custom-query-field">
+                    <label for="customQuery1">Custom Query 1 <span class="required">*</span></label>
+                    <input type="text" id="customQuery1" name="customQuery1" placeholder="Enter custom query 1"
+                        required></input>
+                </div>
+            </div>
+            <br>
+            <div >
+                <div class="submit-btn" onclick="addNewInputField()">Add More Queries</div>
+            </div>
+            <br>
+            <div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    Submit Analysis
+                </button>
+            </div>
+        </form>
+        <script>
+            let count = 2;
+            function addNewInputField() {
+                const custumQueriesContainer = document.getElementById("customQueriesContainer");
+                const newInputField = document.createElement('div');
+                newInputField.classList.add('custom-query-field');
+                newInputField.innerHTML = `
+                    <label for="customQuery${count}">Custom Query ${count}</label>
+                    <input type="text" id="customQuery${count}" name="customQuery${count}" placeholder="Enter custom query ${customQueries.length + 1}">
+                `;
+                custumQueriesContainer.appendChild(newInputField);
+                count++;
+            }
+
+            const customQueries = [{
+                htmlCode: `<div id="customQueriesContainer" class="custom-queries-container">
                     <div class="custom-query-field">
                         <label for="customQuery1">Custom Query 1 <span class="required">*</span></label>
                         <input type="text" id="customQuery1" name="customQuery1" placeholder="Enter custom query 1"
-                            required>
+                            required></input>
                     </div>
-                    <div class="custom-query-field">
-                        <label for="customQuery2">Custom Query 2</label>
-                        <input type="text" id="customQuery2" name="customQuery2" placeholder="Enter custom query 2">
-                    </div>
-                    <div class="custom-query-field">
-                        <label for="customQuery3">Custom Query 3</label>
-                        <input type="text" id="customQuery3" name="customQuery3" placeholder="Enter custom query 3">
-                    </div>
-                    <div class="custom-query-field">
-                        <label for="customQuery4">Custom Query 4</label>
-                        <input type="text" id="customQuery4" name="customQuery4" placeholder="Enter custom query 4">
-                    </div>
-                    <div class="custom-query-field">
-                        <label for="customQuery5">Custom Query 5</label>
-                        <input type="text" id="customQuery5" name="customQuery5" placeholder="Enter custom query 5">
-                    </div>
-                </div>
-            </div>
-
-            <button type="submit" class="submit-btn" id="submitBtn">
-                Submit Analysis
-            </button>
-        </form>
-
+                    
+                </div>`}];
+        </script>
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>Analyzing your rankings... Please wait. This may take upto 3 minutes</p>
@@ -107,7 +123,8 @@
 
             <br>
             <div class="toggle-related-button">
-                <button class="toggle-related submit-btn" id="toggle-related" onclick="onclickShowRelatedQueries()">Related
+                <button class="toggle-related submit-btn" id="toggle-related"
+                    onclick="onclickShowRelatedQueries()">Related
                     Queries</button>
 
             </div>

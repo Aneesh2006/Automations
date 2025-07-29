@@ -172,6 +172,8 @@
             font-weight: 400;
             position: relative;
             z-index: 1;
+            width: 60%;
+            margin: 0 auto;
         }
 
         .form-section {
@@ -192,8 +194,10 @@
             display: grid;
             grid-template-columns: 1fr;
             gap: 24px;
-            margin-bottom: 32px;
+            margin-bottom: 24px;
         }
+
+        
 
         .form-group {
             display: flex;
@@ -290,7 +294,10 @@
             position: relative;
             overflow: hidden;
             box-shadow: var(--shadow-medium);
+            text-align: center;
         }
+
+
 
         .submit-btn::before {
             content: '';
@@ -337,6 +344,11 @@
             background: linear-gradient(135deg, var(--button-gradient-start) 0%, var(--button-gradient-end) 100%);
             box-shadow: var(--shadow-medium);
         }
+
+        /* .add-button{
+            max-width: 200px;
+            margin: 0 auto;
+        } */
 
         .loading {
             display: none;
@@ -530,7 +542,6 @@
 
         tbody tr:hover {
             background: var(--surface);
-            transform: scale(1.002);
         }
 
         .status-found {
@@ -602,6 +613,10 @@
             .form-grid {
                 grid-template-columns: repeat(2, 1fr);
                 gap: 24px;
+            }
+
+            .c {
+                grid-column: span 1;
             }
         }
 
